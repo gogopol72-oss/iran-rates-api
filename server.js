@@ -34,54 +34,49 @@ app.get("/rates", async (req, res) => {
     const url = "https://www.tgju.org/profile/price_dollar_rl";
 
     const response = await axios.get(url, {
-      timeout: 5000,
+      timeout: 4000,
       headers: {
-        "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36",
-        "Accept-Language": "en-US,en;q=0.9",
-      },
+        "User-Agent": "Mozilla/5.0"
+      }
     });
 
     const $ = cheerio.load(response.data);
-
     const priceText = $(".value").first().text().replace(/,/g, "").trim();
 
     const usdIrr = parseInt(priceText);
 
-    if (!usdIrr || isNaN(usdIrr)) {
-      console.log("Invalid TGJU data → fallback used");
-      return res.json(fallbackResponse());
-    }
-
     return res.json({
       success: true,
-      source: "TGJU",
-      iran: {
-        USD_IRR: usdIrr,
-      },
+      source: usdIrr ? "TGJU" : "fallback",
       rates: {
         IRR: 1,
-        USD: usdIrr,
-        EUR: Math.round(usdIrr * 1.07),
-        AED: Math.round(usdIrr * 0.27),
-        GBP: Math.round(usdIrr * 1.25),
+        USD: usdIrr || 58000,
+        EUR: Math.round((usdIrr || 58000) * 1.07),
+        AED: Math.round((usdIrr || 58000) * 0.27),
         PKR: 210,
-        INR: 700,
-        TRY: 1800,
-        SAR: 15500,
       },
       time: new Date().toISOString(),
     });
 
   } catch (error) {
-    console.log("Error fetching TGJU:", error.message);
-    return res.json(fallbackResponse());
+    return res.json({
+      success: true,
+      source: "fallback",
+      rates: {
+        IRR: 1,
+        USD: 58000,
+        EUR: 62000,
+        AED: 15800,
+        PKR: 210,
+      },
+      time: new Date().toISOString(),
+    });
   }
 });
 
 // IMPORTANT: Railway uses process.env.PORT
 const PORT = process.env.PORT || 3000;
 
-app.listen(PORT, () => {
+app.listen(PORT, "0.0.0.0", () => {
   console.log("Server running on port", PORT);
 });
